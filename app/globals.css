@@ -1,26 +1,355 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --card: oklch(0.9940 0 0);
+    --card-foreground: oklch(0 0 0);
+    --popover: oklch(0.9911 0 0);
+    --popover-foreground: oklch(0 0 0);
+    --primary: oklch(0.5393 0.2713 286.7462);
+    --primary-foreground: oklch(1.0000 0 0);
+    --secondary: oklch(0.9540 0.0063 255.4755);
+    --secondary-foreground: oklch(0.1344 0 0);
+    --muted: oklch(0.9702 0 0);
+    --muted-foreground: oklch(0.4386 0 0);
+    --accent: oklch(0.9393 0.0288 266.3680);
+    --accent-foreground: oklch(0.5445 0.1903 259.4848);
+    --destructive: oklch(0.6290 0.1902 23.0704);
+    --destructive-foreground: oklch(1.0000 0 0);
+    --border: oklch(0.9300 0.0094 286.2156);
+    --input: oklch(0.9401 0 0);
+    --ring: oklch(0 0 0);
+    --chart-1: oklch(0.7459 0.1483 156.4499);
+    --chart-2: oklch(0.5393 0.2713 286.7462);
+    --chart-3: oklch(0.7336 0.1758 50.5517);
+    --chart-4: oklch(0.5828 0.1809 259.7276);
+    --chart-5: oklch(0.5590 0 0);
+    --sidebar: oklch(0.9777 0.0051 247.8763);
+    --sidebar-foreground: oklch(0 0 0);
+    --sidebar-primary: oklch(0 0 0);
+    --sidebar-primary-foreground: oklch(1.0000 0 0);
+    --sidebar-accent: oklch(0.9401 0 0);
+    --sidebar-accent-foreground: oklch(0 0 0);
+    --sidebar-border: oklch(0.9401 0 0);
+    --sidebar-ring: oklch(0 0 0);
+    --font-sans: Plus Jakarta Sans, sans-serif;
+    --font-serif: Lora, serif;
+    --font-mono: IBM Plex Mono, monospace;
+    --radius: 1.4rem;
+    --shadow-2xs: 0px 2px 3px 0px hsl(0 0% 0% / 0.08);
+    --shadow-xs: 0px 2px 3px 0px hsl(0 0% 0% / 0.08);
+    --shadow-sm: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 1px 2px -1px hsl(0 0% 0% / 0.16);
+    --shadow: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 1px 2px -1px hsl(0 0% 0% / 0.16);
+    --shadow-md: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 2px 4px -1px hsl(0 0% 0% / 0.16);
+    --shadow-lg: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 4px 6px -1px hsl(0 0% 0% / 0.16);
+    --shadow-xl: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 8px 10px -1px hsl(0 0% 0% / 0.16);
+    --shadow-2xl: 0px 2px 3px 0px hsl(0 0% 0% / 0.40);
+    --ck-font-family: "SF Pro Rounded";
+    --ck-border-radius: 8px;
+    --ck-connectbutton-font-size: 17px;
+    --ck-connectbutton-color: #000000;
+    --ck-connectbutton-background: #ffffff;
+    --ck-connectbutton-box-shadow:
+        -4px 4px 0px #000000, inset 0 0 0 2px #000000;
+    --ck-connectbutton-border-radius: 8px;
+    --ck-connectbutton-hover-background: #f3ede8;
+    --ck-connectbutton-active-box-shadow:
+        0 0 0 0 #000000, inset 0 0 0 2px #000000;
+    --ck-connectbutton-balance-color: #000000;
+    --ck-connectbutton-balance-background: #f3ede8;
+    --ck-connectbutton-balance-box-shadow:
+        -4px 4px 0px #000000, inset 0 0 0 2px #000000;
+    --ck-connectbutton-balance-hover-background: #eee5dd;
+    --ck-connectbutton-balance-connectbutton-box-shadow:
+        -4px 8px 0px -4px #000000, inset 0 0 0 2px #000000;
+    --ck-connectbutton-balance-connectbutton-border-radius: 0px 8px 8px 0;
+    --ck-primary-button-color: #373737;
+    --ck-primary-button-background: #ffffff;
+    --ck-primary-button-box-shadow:
+        inset 0 0 0 2px #000000, -4px 4px 0 0 #000000;
+    --ck-primary-button-border-radius: 8px;
+    --ck-primary-button-hover-background: #f3ede8;
+    --ck-primary-button-hover-box-shadow:
+        inset 0 0 0 2px #000000, -0px 0px 0 0 #000000;
+    --ck-secondary-button-border-radius: 8px;
+    --ck-secondary-button-color: #373737;
+    --ck-secondary-button-background: #ffffff;
+    --ck-secondary-button-box-shadow:
+        -4px 4px 0 0 #000000, inset 0 0 0 2px #000000;
+    --ck-secondary-button-hover-background: #f3ede8;
+    --ck-secondary-button-hover-box-shadow:
+        0 0 0 0 #000000, inset 0 0 0 2px #000000;
+    --ck-focus-color: #3b99fc;
+    --ck-overlay-background: rgba(133, 120, 122, 0.8);
+    --ck-body-color: #373737;
+    --ck-body-color-muted: rgba(0, 0, 0, 0.5);
+    --ck-body-color-muted-hover: #000000;
+    --ck-body-background: #ebe1d8;
+    --ck-body-background-transparent: rgba(255, 255, 255, 0);
+    --ck-body-background-secondary: rgba(0, 0, 0, 0.1);
+    --ck-body-background-secondary-hover-background: #4d4d4d;
+    --ck-body-background-secondary-hover-outline: #373737;
+    --ck-body-background-tertiary: #ffffff;
+    --ck-tertiary-border-radius: 8px;
+    --ck-tertiary-box-shadow: -4px 4px 0 0 #000000, inset 0 0 0 2px #000000;
+    --ck-body-action-color: #373737;
+    --ck-body-divider: #373737;
+    --ck-body-color-danger: #ff4e4e;
+    --ck-body-disclaimer-background: #e3d6c9;
+    --ck-body-disclaimer-box-shadow:
+        -4px 4px 0 0 #000000, inset 2px 0 0 0 #000000, inset -2px 0 0 0 #000000,
+        inset 0 -2px 0 0 #000000;
+    --ck-body-disclaimer-font-weight: 500;
+    --ck-body-disclaimer-color: #888079;
+    --ck-body-disclaimer-link-color: #5b5650;
+    --ck-body-disclaimer-link-hover-color: #000000;
+    --ck-modal-box-shadow: -10px 10px 0px #000000, inset 0 0 0 2px #000000;
+    --ck-copytoclipboard-stroke: #555555;
+    --ck-tooltip-border-radius: 8px;
+    --ck-tooltip-color: #373737;
+    --ck-tooltip-background: #ffffff;
+    --ck-tooltip-background-secondary: #ebe1d8;
+    --ck-tooltip-shadow: -6px 6px 0 0 #000000, 0 0 0 2px #000000;
+    --ck-spinner-color: #1a88f8;
+    --ck-dropdown-button-color: #000;
+    --ck-dropdown-button-box-shadow: -2px 2px 0 2px #000000, 0 0 0 2px #000000;
+    --ck-dropdown-button-background: #ffffff;
+    --ck-dropdown-button-hover-background: #f3ede8;
+    --ck-dropdown-button-hover-box-shadow:
+        -2px 2px 0 0 #000000, 0 0 0 2px #000000;
+    --ck-dropdown-pending-color: rgba(0, 0, 0, 0.5);
+    --ck-dropdown-active-color: #ffffff;
+    --ck-dropdown-active-static-color: rgba(0, 0, 0, 0.5);
+    --ck-dropdown-active-background: #3b99fc;
+    --ck-dropdown-active-box-shadow: inset 0 0 0 2px #000000;
+    --ck-dropdown-active-border-radius: 8px;
+    --ck-dropdown-color: rgba(0, 0, 0, 0.5);
+    --ck-dropdown-background: #ffffff;
+    --ck-dropdown-box-shadow: -4px 4px 0 0 #000000, inset 0 0 0 2px #000000;
+    --ck-dropdown-border-radius: 8px;
+    --ck-alert-color: rgba(0, 0, 0, 0.5);
+    --ck-alert-background: #f5f5f5;
+    --ck-alert-border-radius: 8px;
+    --ck-qr-border-radius: 8px;
+    --ck-qr-dot-color: #000000;
+    --ck-qr-border-color: #000000;
+    --ck-qr-background: #ffffff;
+    --ck-recent-badge-border-radius: 32px;
+    --ck-recent-badge-box-shadow: inset 0 0 0 2px currentColor;
+    --ck-graphic-primary-color: #000000;
+    --ck-graphic-primary-background: #ffffff;
+    --ck-graphic-compass-background: #ffffff;
+    --ck-siwe-border: #8e8985;
+    --background: oklch(0.9940 0 0);
+    --foreground: oklch(0 0 0);
+    --shadow-color: hsl(0 0% 0%);
+    --shadow-opacity: 0.16;
+    --shadow-blur: 3px;
+    --shadow-spread: 0px;
+    --shadow-offset-x: 0px;
+    --shadow-offset-y: 2px;
+    --letter-spacing: -0.025em;
+    --spacing: 0.27rem;
+    --tracking-normal: -0.025em;
+}
+
+.dark {
+    --background: oklch(0.2223 0.0060 271.1393);
+    --foreground: oklch(0.9551 0 0);
+    --card: oklch(0.2568 0.0076 274.6528);
+    --card-foreground: oklch(0.9551 0 0);
+    --popover: oklch(0.2568 0.0076 274.6528);
+    --popover-foreground: oklch(0.9551 0 0);
+    --primary: oklch(0.6132 0.2294 291.7437);
+    --primary-foreground: oklch(1.0000 0 0);
+    --secondary: oklch(0.2940 0.0130 272.9312);
+    --secondary-foreground: oklch(0.9551 0 0);
+    --muted: oklch(0.2940 0.0130 272.9312);
+    --muted-foreground: oklch(0.7058 0 0);
+    --accent: oklch(0.2795 0.0368 260.0310);
+    --accent-foreground: oklch(0.7857 0.1153 246.6596);
+    --destructive: oklch(0.7106 0.1661 22.2162);
+    --destructive-foreground: oklch(1.0000 0 0);
+    --border: oklch(0.3289 0.0092 268.3843);
+    --input: oklch(0.3289 0.0092 268.3843);
+    --ring: oklch(0.6132 0.2294 291.7437);
+    --chart-1: oklch(0.8003 0.1821 151.7110);
+    --chart-2: oklch(0.6132 0.2294 291.7437);
+    --chart-3: oklch(0.8077 0.1035 19.5706);
+    --chart-4: oklch(0.6691 0.1569 260.1063);
+    --chart-5: oklch(0.7058 0 0);
+    --sidebar: oklch(0.2011 0.0039 286.0396);
+    --sidebar-foreground: oklch(0.9551 0 0);
+    --sidebar-primary: oklch(0.6132 0.2294 291.7437);
+    --sidebar-primary-foreground: oklch(1.0000 0 0);
+    --sidebar-accent: oklch(0.2940 0.0130 272.9312);
+    --sidebar-accent-foreground: oklch(0.6132 0.2294 291.7437);
+    --sidebar-border: oklch(0.3289 0.0092 268.3843);
+    --sidebar-ring: oklch(0.6132 0.2294 291.7437);
+    --font-sans: Plus Jakarta Sans, sans-serif;
+    --font-serif: Lora, serif;
+    --font-mono: IBM Plex Mono, monospace;
+    --radius: 1.4rem;
+    --shadow-2xs: 0px 2px 3px 0px hsl(0 0% 0% / 0.08);
+    --shadow-xs: 0px 2px 3px 0px hsl(0 0% 0% / 0.08);
+    --shadow-sm: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 1px 2px -1px hsl(0 0% 0% / 0.16);
+    --shadow: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 1px 2px -1px hsl(0 0% 0% / 0.16);
+    --shadow-md: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 2px 4px -1px hsl(0 0% 0% / 0.16);
+    --shadow-lg: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 4px 6px -1px hsl(0 0% 0% / 0.16);
+    --shadow-xl: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 8px 10px -1px hsl(0 0% 0% / 0.16);
+    --shadow-2xl: 0px 2px 3px 0px hsl(0 0% 0% / 0.40);
+    --ck-connectbutton-color: #ffffff;
+    --ck-connectbutton-background: #373737;
+    --ck-connectbutton-box-shadow:
+        -4px 4px 0px #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-connectbutton-hover-background: #4d4d4d;
+    --ck-connectbutton-active-box-shadow:
+        0 0 0 0 #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-connectbutton-balance-color: #ffffff;
+    --ck-connectbutton-balance-background: #4d4d4d;
+    --ck-connectbutton-balance-box-shadow:
+        -4px 4px 0px #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-connectbutton-balance-hover-background: #5c5c5c;
+    --ck-primary-button-color: #ffffff;
+    --ck-primary-button-background: #373737;
+    --ck-primary-button-box-shadow:
+        inset 0 0 0 2px #ffffff, -4px 4px 0 0 #ffffff;
+    --ck-primary-button-hover-background: #4d4d4d;
+    --ck-primary-button-hover-box-shadow:
+        inset 0 0 0 2px #ffffff, -0px 0px 0 0 #ffffff;
+    --ck-secondary-button-color: #ffffff;
+    --ck-secondary-button-background: #373737;
+    --ck-secondary-button-box-shadow:
+        -4px 4px 0 0 #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-secondary-button-hover-background: #4d4d4d;
+    --ck-secondary-button-hover-box-shadow:
+        0 0 0 0 #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-body-color: #ffffff;
+    --ck-body-color-muted: rgba(255, 255, 255, 0.5);
+    --ck-body-color-muted-hover: #ffffff;
+    --ck-body-background: #2b2b2b;
+    --ck-body-background-transparent: rgba(0, 0, 0, 0);
+    --ck-body-background-secondary: rgba(255, 255, 255, 0.1);
+    --ck-body-background-secondary-hover-background: #3d3d3d;
+    --ck-body-background-secondary-hover-outline: #ffffff;
+    --ck-body-background-tertiary: #373737;
+    --ck-tertiary-box-shadow: -4px 4px 0 0 #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-body-action-color: #ffffff;
+    --ck-body-divider: #ffffff;
+    --ck-body-color-danger: #ff4e4e;
+    --ck-body-disclaimer-background: #2b2b2b;
+    --ck-body-disclaimer-box-shadow:
+        -4px 4px 0 0 #ffffff, inset 2px 0 0 0 #ffffff, inset -2px 0 0 0 #ffffff,
+        inset 0 -2px 0 0 #ffffff;
+    --ck-modal-box-shadow: -10px 10px 0px #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-tooltip-color: #ffffff;
+    --ck-tooltip-background: #373737;
+    --ck-tooltip-background-secondary: #2b2b2b;
+    --ck-tooltip-shadow: -6px 6px 0 0 #ffffff, 0 0 0 2px #ffffff;
+    --ck-dropdown-button-color: #fff;
+    --ck-dropdown-button-box-shadow: -2px 2px 0 2px #ffffff, 0 0 0 2px #ffffff;
+    --ck-dropdown-button-background: #373737;
+    --ck-dropdown-button-hover-background: #4d4d4d;
+    --ck-dropdown-button-hover-box-shadow:
+        -2px 2px 0 0 #ffffff, 0 0 0 2px #ffffff;
+    --ck-dropdown-color: rgba(255, 255, 255, 0.5);
+    --ck-dropdown-background: #373737;
+    --ck-dropdown-box-shadow: -4px 4px 0 0 #ffffff, inset 0 0 0 2px #ffffff;
+    --ck-alert-color: rgba(255, 255, 255, 0.5);
+    --ck-alert-background: #2b2b2b;
+    --ck-qr-dot-color: #ffffff;
+    --ck-qr-border-color: #ffffff;
+    --ck-qr-background: #373737;
+    --ck-graphic-primary-color: #ffffff;
+    --ck-graphic-primary-background: #373737;
+    --ck-graphic-compass-background: #373737;
+    --ck-siwe-border: #ffffff;
+    --shadow-color: hsl(0 0% 0%);
+    --shadow-opacity: 0.16;
+    --shadow-blur: 3px;
+    --shadow-spread: 0px;
+    --shadow-offset-x: 0px;
+    --shadow-offset-y: 2px;
+    --letter-spacing: -0.025em;
+    --spacing: 0.27rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --font-sans: Plus Jakarta Sans, sans-serif;
+    --font-mono: IBM Plex Mono, monospace;
+    --font-serif: Lora, serif;
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --shadow-2xs: var(--shadow-2xs);
+    --shadow-xs: var(--shadow-xs);
+    --shadow-sm: var(--shadow-sm);
+    --shadow: var(--shadow);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+    --shadow-xl: var(--shadow-xl);
+    --shadow-2xl: var(--shadow-2xl);
+    --radius: 1.4rem;
+    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+    --tracking-normal: var(--tracking-normal);
+    --spacing: var(--spacing);
+    --letter-spacing: var(--letter-spacing);
+    --shadow-offset-y: var(--shadow-offset-y);
+    --shadow-offset-x: var(--shadow-offset-x);
+    --shadow-spread: var(--shadow-spread);
+    --shadow-blur: var(--shadow-blur);
+    --shadow-opacity: var(--shadow-opacity);
+    --color-shadow-color: var(--shadow-color);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    letter-spacing: var(--tracking-normal);
+    }
 }
