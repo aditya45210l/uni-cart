@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   console.log("i am entered");
-  const { id } = await params;
+  const { id } = await context.params;
   const apiKey = process.env.NEXT_PUBLIC_API_KEY; // your key in .env
   const url = `https://api.zinc.io/v1/products/${id}?retailer=amazon`;;
 
