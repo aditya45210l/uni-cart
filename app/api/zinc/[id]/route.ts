@@ -5,9 +5,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log("i am entered");
   const { id } = await params;
   const apiKey = process.env.NEXT_PUBLIC_API_KEY; // your key in .env
-  const url = `https://api.zinc.io/v1/products/${id}?retailer=amazon`;
+  const url = `https://api.zinc.io/v1/products/${id}?retailer=amazon`;;
 
   try {
     const response = await axios.get(url, {

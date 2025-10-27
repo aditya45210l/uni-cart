@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { redirect } from 'next/navigation';
 import {
+  useEffect,
   useState
 } from "react"
 import {
@@ -38,148 +39,197 @@ import {
   Input
 } from "@/components/ui/input"
 import { getProduct, getProductDetails } from '@/lib/actions/getAction';
+import { addItemToCart, getCartByWallet } from '@/lib/utils/cart-api';
+import { Cart, CartItem } from '@/types/cart';
+import { usePushChainClient } from '@pushchain/ui-kit';
 
 const formSchema = z.object({
   product_link: z.string().min(1)
 });
 
-  function MyForm({ onProductFetched }: { onProductFetched: (data: any) => void }) {
+// Function to add a loading spinner icon (assuming Lucide icons are available)
+import { Loader2 } from 'lucide-react'; // Make sure you import Loader2 or similar icon
 
-  const form = useForm < z.infer < typeof formSchema >> ({
-    resolver: zodResolver(formSchema),
+function MyForm({ onProductFetched, fetchCart }: { onProductFetched: (data: any) => void, fetchCart: () => Promise<void> }) {
+    const { pushChainClient } = usePushChainClient();
 
-  })
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+    });
 
-  async function onSubmit(values: z.infer < typeof formSchema > ) {
-    try {
-      const ASIN_CODE = extractASIN(values.product_link);
-      console.log("Extracted ASIN:", ASIN_CODE);
-      const productDetails =  await getProduct(ASIN_CODE!);
-      console.log("Product Details:", productDetails);
-onProductFetched(productDetails);
-      toast(
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(values, null, 2)}</code>
-        </pre>
-      );
-    } catch (error) {
-      console.error("Form submission error", error);
-      toast.error("Failed to submit the form. Please try again.");
+    // Extract the submission state from formState
+    const { isSubmitting } = form.formState; 
+
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        try {
+            const ASIN_CODE = extractASIN(values.product_link);
+            console.log("Extracted ASIN:", ASIN_CODE);
+            
+            // 1. Fetch Product Details (first long operation)
+            const productDetails = (await getProduct(ASIN_CODE!))?.data;
+            console.log("Fetched product details:", productDetails);
+            onProductFetched(productDetails);
+            
+            // 2. Add to Cart (second long operation)
+            const data = await addItemToCart({ 
+                walletAddress: pushChainClient.universal.origin.address as string, 
+                productId: ASIN_CODE!, 
+                productName: productDetails.title, 
+                productImage: productDetails.main_image, 
+                quantity: 1, 
+                priceUSD: productDetails.price / 100, 
+                productUrl: values.product_link 
+            });
+            
+            // 3. Re-fetch Cart (third long operation)
+            await fetchCart();
+            console.log("Added to cart, updated cart:", data);
+
+            toast(
+                <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+                    <code className="text-white">Product Added!</code>
+                </pre>
+            );
+        } catch (error) {
+            console.error("Form submission error", error);
+            toast.error("Failed to submit the form. Please try again.");
+        }
     }
-  }
 
-  return (
-    <Form {...form} >
-      <form onSubmit={form.handleSubmit(onSubmit)} className='min-w-full!'>
-        <FormField
-
-          control={form.control}
-          name="product_link"
-          render={({ field }) => (
-            <FormItem className='w-full!'>
-              <FormLabel className='text-slate-400'>Product URL</FormLabel>
-              <FormControl>
-                <Input 
-                placeholder="https://www.amazon.com/dp/..."
-                className=''
-                type="text"
-                {...field} />
-              </FormControl>
-              
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className='mt-6 ml-1'>Add to Cart</Button>
-      </form>
-    </Form>
-  )
+    return (
+        <Form {...form} >
+            <form onSubmit={form.handleSubmit(onSubmit)} className='min-w-full!'>
+                <FormField
+                    control={form.control}
+                    name="product_link"
+                    render={({ field }) => (
+                        <FormItem className='w-full!'>
+                            <FormLabel className='text-slate-400'>Product URL</FormLabel>
+                            <FormControl>
+                                <Input
+                                    placeholder="https://www.amazon.com/dp/..."
+                                    className=''
+                                    type="text"
+                                    {...field}
+                                    // *** FIX 1: Disable input while submitting ***
+                                    disabled={isSubmitting} 
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <Button 
+                    type="submit" 
+                    className='mt-6 ml-1'
+                    // *** FIX 2: Disable button while submitting ***
+                    disabled={isSubmitting} 
+                >
+                    {/* *** FIX 3: Show loading state inside the button *** */}
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Fetching details...
+                        </>
+                    ) : (
+                        'Add to Cart'
+                    )}
+                </Button>
+            </form>
+        </Form>
+    )
 }
 
 const SP3NDApp = () => {
-  const [productPreview, setProductPreview] = useState<any>({
-  timestamp: 1761463674,
-  status: 'completed',
-  feature_bullets: [
-    'Package Contents: 3 wall Hexagaon painting',
-    'Item Size: 17 inches X 17 inches',
-    'Usage: It can be used for living room, home decor and for gifting purposes',
-    'self addeshive multi-effect easy clean to dry cloth painting',
-    'hexagon,7 horses,seven horses,nature,6MM MDF,PANEL PAINTING,panel painting,kids decore,motivational,motivation,kids room,cartoon,panel painting,panels,wall hanging,Ganesh,Ganesha,Ganesh Ji,Modern art ganesh,ganesh Painting,Buddha,Floral,Modern Art,Rajasthani Village Painting,Painting,Wall Painting,Wall decor,wall art,decals,wall decals,modern Art,abstract,led Paintings gift,gifts,photo frame,framing,uv,poster,wall Painting,kids room decor,decals,wall sticker,Radha Krishna,Radha,Krishna'
-  ],
-  title: 'SAF Preety Floral Flower and Leaf in Cone Pot 3 Piece UV Textured Multi-Effect Self adheshive Painting 17 Inch X 17 Inch SANFHX141,Multicolour',
-  gift_card: false,
-  aplus_html: 'present',
-  html_product_description: '<div id="productDescription" class="a-section a-spacing-small">          <!-- show up to 2 reviews by default -->\n' +
-    '                       <p>    <span>UV Multieffect Paintings has Pasted on a Base of 6MM MDF with Double side Foam Tape . After a long research and development we come up with this MDF Panel Paintings. It is long lasting and unbreakable. You can add a good set of lights to the place where the painting is which will give a fantastic sparkle look, and the decor will give a different feel and look to the place. Quality and Durability:- The painting has a UV finish and includes a good quality MDF on which painting is pasted with a dimension of 3 Panels is 43 CM X 43 CM. However, it does not include glass. Specifications</span>    </p>            </div>',
-  product_description: 'UV Multieffect Paintings has Pasted on a Base of 6MM MDF with Double side Foam\n' +
-    'Tape . After a long research and development we come up with this MDF Panel\n' +
-    'Paintings. It is long lasting and unbreakable. You can add a good set of\n' +
-    'lights to the place where the painting is which will give a fantastic sparkle\n' +
-    'look, and the decor will give a different feel and look to the place. Quality\n' +
-    'and Durability:- The painting has a UV finish and includes a good quality MDF\n' +
-    'on which painting is pasted with a dimension of 3 Panels is 43 CM X 43 CM.\n' +
-    'However, it does not include glass. Specifications',
-  images: [
-    'https://m.media-amazon.com/images/I/51FkEHDh0IL.jpg',
-    'https://m.media-amazon.com/images/I/51FO4Qxe7IL.jpg',
-    'https://m.media-amazon.com/images/I/61Iv+qbBdpL.jpg'
-  ],
-  main_image: 'https://m.media-amazon.com/images/I/51FkEHDh0IL.jpg',
-  product_details: [
-    'Product Dimensions: 16.93 x 16.93 x 0.79 inches',
-    'Item Weight: 12.3 ounces',
-    'Manufacturer: SAF',
-    'Item model number: SAFHX141',
-    'Date First Available: June 9, 2020'
-  ],
-  eliapo: false,
-  brand: 'SAF',
-  categories: [
-    'Home & Kitchen',
-    'Home Décor Products',
-    'Home Décor Accents',
-    'Sculptures',
-    'Wall Sculptures'
-  ],
-  package_dimensions: {
-    size: { width: [Object], depth: [Object], length: [Object] },
-    weight: { amount: 0.7936641432, unit: 'pounds' }
-  },
-  all_variants: [ { product_id: 'B085Y5VGGK', variant_specifics: [] } ],
-  return_hint: null,
-  return_hint_text: '30-day refund/replacement',
-  delight_text: '',
-  tag_title: 'SAF Preety Floral Flower and Leaf in Cone Pot 3 Piece UV Textured Multi-Effect Self adheshive Painting 17 Inch X 17 Inch SANFHX141,Multicolour',
-  variant_specifics: [],
-  asin: 'B085Y5VGGK',
-  product_id: 'B085Y5VGGK',
-  retailer: 'amazon',
-  stars: 4,
-  review_count: 5722,
-  question_count: null,
-  num_offers: 2,
-  fresh: false,
-  pantry: false,
-  handmade: false,
-  customizable: false,
-  digital: false,
-  digital_subscription: false,
-  buyapi_hint: true,
-  parent_asin: null,
-  blank_box: false,
-  price: 3887,
-  ship_price: 500,
-  addon: false,
-  epids: [ { type: 'MPN', value: 'SAFHX141' } ],
-  epids_map: { MPN: 'SAFHX141' }
-});
+  const [productPreview, setProductPreview] = useState<any>(
+  //   {
+  //   timestamp: 1761463674,
+  //   status: 'completed',
+  //   feature_bullets: [
+  //     'Package Contents: 3 wall Hexagaon painting',
+  //     'Item Size: 17 inches X 17 inches',
+  //     'Usage: It can be used for living room, home decor and for gifting purposes',
+  //     'self addeshive multi-effect easy clean to dry cloth painting',
+  //     'hexagon,7 horses,seven horses,nature,6MM MDF,PANEL PAINTING,panel painting,kids decore,motivational,motivation,kids room,cartoon,panel painting,panels,wall hanging,Ganesh,Ganesha,Ganesh Ji,Modern art ganesh,ganesh Painting,Buddha,Floral,Modern Art,Rajasthani Village Painting,Painting,Wall Painting,Wall decor,wall art,decals,wall decals,modern Art,abstract,led Paintings gift,gifts,photo frame,framing,uv,poster,wall Painting,kids room decor,decals,wall sticker,Radha Krishna,Radha,Krishna'
+  //   ],
+  //   title: 'SAF Preety Floral Flower and Leaf in Cone Pot 3 Piece UV Textured Multi-Effect Self adheshive Painting 17 Inch X 17 Inch SANFHX141,Multicolour',
+  //   gift_card: false,
+  //   aplus_html: 'present',
+  //   html_product_description: '<div id="productDescription" class="a-section a-spacing-small">          <!-- show up to 2 reviews by default -->\n' +
+  //     '                       <p>    <span>UV Multieffect Paintings has Pasted on a Base of 6MM MDF with Double side Foam Tape . After a long research and development we come up with this MDF Panel Paintings. It is long lasting and unbreakable. You can add a good set of lights to the place where the painting is which will give a fantastic sparkle look, and the decor will give a different feel and look to the place. Quality and Durability:- The painting has a UV finish and includes a good quality MDF on which painting is pasted with a dimension of 3 Panels is 43 CM X 43 CM. However, it does not include glass. Specifications</span>    </p>            </div>',
+  //   product_description: 'UV Multieffect Paintings has Pasted on a Base of 6MM MDF with Double side Foam\n' +
+  //     'Tape . After a long research and development we come up with this MDF Panel\n' +
+  //     'Paintings. It is long lasting and unbreakable. You can add a good set of\n' +
+  //     'lights to the place where the painting is which will give a fantastic sparkle\n' +
+  //     'look, and the decor will give a different feel and look to the place. Quality\n' +
+  //     'and Durability:- The painting has a UV finish and includes a good quality MDF\n' +
+  //     'on which painting is pasted with a dimension of 3 Panels is 43 CM X 43 CM.\n' +
+  //     'However, it does not include glass. Specifications',
+  //   images: [
+  //     'https://m.media-amazon.com/images/I/51FkEHDh0IL.jpg',
+  //     'https://m.media-amazon.com/images/I/51FO4Qxe7IL.jpg',
+  //     'https://m.media-amazon.com/images/I/61Iv+qbBdpL.jpg'
+  //   ],
+  //   main_image: 'https://m.media-amazon.com/images/I/51FkEHDh0IL.jpg',
+  //   product_details: [
+  //     'Product Dimensions: 16.93 x 16.93 x 0.79 inches',
+  //     'Item Weight: 12.3 ounces',
+  //     'Manufacturer: SAF',
+  //     'Item model number: SAFHX141',
+  //     'Date First Available: June 9, 2020'
+  //   ],
+  //   eliapo: false,
+  //   brand: 'SAF',
+  //   categories: [
+  //     'Home & Kitchen',
+  //     'Home Décor Products',
+  //     'Home Décor Accents',
+  //     'Sculptures',
+  //     'Wall Sculptures'
+  //   ],
+  //   package_dimensions: {
+  //     size: { width: [Object], depth: [Object], length: [Object] },
+  //     weight: { amount: 0.7936641432, unit: 'pounds' }
+  //   },
+  //   all_variants: [{ product_id: 'B085Y5VGGK', variant_specifics: [] }],
+  //   return_hint: null,
+  //   return_hint_text: '30-day refund/replacement',
+  //   delight_text: '',
+  //   tag_title: 'SAF Preety Floral Flower and Leaf in Cone Pot 3 Piece UV Textured Multi-Effect Self adheshive Painting 17 Inch X 17 Inch SANFHX141,Multicolour',
+  //   variant_specifics: [],
+  //   asin: 'B085Y5VGGK',
+  //   product_id: 'B085Y5VGGK',
+  //   retailer: 'amazon',
+  //   stars: 4,
+  //   review_count: 5722,
+  //   question_count: null,
+  //   num_offers: 2,
+  //   fresh: false,
+  //   pantry: false,
+  //   handmade: false,
+  //   customizable: false,
+  //   digital: false,
+  //   digital_subscription: false,
+  //   buyapi_hint: true,
+  //   parent_asin: null,
+  //   blank_box: false,
+  //   price: 3887,
+  //   ship_price: 500,
+  //   addon: false,
+  //   epids: [{ type: 'MPN', value: 'SAFHX141' }],
+  //   epids_map: { MPN: 'SAFHX141' }
+  // }
+'');
 
   const [currentPage, setCurrentPage] = useState('cart');
   const [productUrl, setProductUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  
+
+  const [cart, setCart] = useState<CartItem[] >([]);
+  const [rawCart,setRawCart] = useState<Cart | null>(null);
+  const [isLoadingCart, setIsLoadingCart] = useState(true); // New loading state for the cart fetch
+
   const [shippingData, setShippingData] = useState({
     fullName: '',
     phone: '',
@@ -195,7 +245,7 @@ const SP3NDApp = () => {
 
   const handleAddToCart = async () => {
     if (!productUrl) return;
-    
+
     setIsLoading(true);
     setTimeout(() => {
       const newItem = {
@@ -212,7 +262,7 @@ const SP3NDApp = () => {
   };
 
   const updateQuantity = (id, delta) => {
-    setCartItems(cartItems.map(item => 
+    setCartItems(cartItems.map(item =>
       item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
     ));
   };
@@ -274,55 +324,55 @@ const SP3NDApp = () => {
                 >
                   {isLoading ? 'Loading...' : 'Add to Cart'}
                 </Button> */}
-                <MyForm  onProductFetched={(data) => setProductPreview(data)} />
+                <MyForm onProductFetched={(data) => setProductPreview(data)} fetchCart={fetchCart} />
               </div>
             </CardContent>
           </Card>
           {productPreview && (
-  <Card className="mt-6">
-    <CardHeader>
-      <CardTitle className="text-lg font-semibold">{productPreview.title}</CardTitle>
-      <CardDescription>{productPreview.brand}</CardDescription>
-    </CardHeader>
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">{productPreview.title}</CardTitle>
+                <CardDescription>{productPreview.brand}</CardDescription>
+              </CardHeader>
 
-    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Left side: Image */}
-      <div className="flex justify-center items-center">
-        <img
-          src={productPreview.main_image}
-          alt={productPreview.title}
-          className="w-full max-w-[300px] rounded-xl shadow-md *:object-contain min-h-fit"
-        />
-      </div>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left side: Image */}
+                <div className="flex justify-center items-center">
+                  <img
+                    src={productPreview.main_image}
+                    alt={productPreview.title}
+                    className="w-full max-w-[300px] rounded-xl shadow-md *:object-contain min-h-fit"
+                  />
+                </div>
 
-      {/* Right side: Info */}
-      <div className="space-y-3">
-        <p className="text-base text-gray-400 leading-relaxed line-clamp-4">
-          {productPreview.product_description}
-        </p>
+                {/* Right side: Info */}
+                <div className="space-y-3">
+                  <p className="text-base text-gray-400 leading-relaxed line-clamp-4">
+                    {productPreview.product_description}
+                  </p>
 
-        <div>
-          <p className="font-semibold text-xl">₹{productPreview.price}</p>
-          <p className="text-sm text-gray-100">Shipping: ₹{productPreview.ship_price}</p>
-        </div>
+                  <div>
+                    <p className="font-semibold text-xl">₹{productPreview.price}</p>
+                    <p className="text-sm text-gray-100">Shipping: ₹{productPreview.ship_price}</p>
+                  </div>
 
-        <div>
-          <h4 className="font-medium text-sm text-gray-100 mb-1">Highlights:</h4>
-          <ul className="list-disc list-inside text-sm text-gray-400">
-            {productPreview.feature_bullets?.slice(0, 4).map((bullet: string, i: number) => (
-              <li key={i}>{bullet}</li>
-            ))}
-          </ul>
-        </div>
+                  <div>
+                    <h4 className="font-medium text-sm text-gray-100 mb-1">Highlights:</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-400">
+                      {productPreview.feature_bullets?.slice(0, 4).map((bullet: string, i: number) => (
+                        <li key={i}>{bullet}</li>
+                      ))}
+                    </ul>
+                  </div>
 
-        {/* <Button className="mt-4 w-full">
+                  {/* <Button className="mt-4 w-full">
           <ShoppingCart className="mr-2 h-4 w-4" />
           Add to Cart
         </Button> */}
-      </div>
-    </CardContent>
-  </Card>
-)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
 
@@ -332,7 +382,7 @@ const SP3NDApp = () => {
               <CardTitle>Your Cart</CardTitle>
             </CardHeader>
             <CardContent>
-              {cartItems.length === 0 ? (
+              { cart?.length === 0? (
                 <div className="text-center py-12">
                   <ShoppingCart className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                   <p className="font-medium mb-2">Your cart is empty</p>
@@ -340,26 +390,26 @@ const SP3NDApp = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {cartItems.map(item => (
-                    <div key={item.id} className="flex gap-3 pb-4 border-b">
-                      <img src={item.image} alt={item.name} className="w-20 h-20 object-cover" />
+                  {cart?.map(item => (
+                    <div key={item.productId} className="flex gap-3 pb-4 border-b">
+                      <img src={item.productImage} alt={item.productName} className="w-20 h-20 object-cover" />
                       <div className="flex-1">
-                        <h4 className="text-sm mb-2">{item.name}</h4>
-                        <p className="font-semibold">${item.price}</p>
+                        <h4 className="text-sm mb-2">{item.productName}</h4>
+                        <p className="font-semibold">${item.priceUSD}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => updateQuantity(item.id, -1)}
+                            onClick={() => updateQuantity(item.productId, -1)}
                             className="h-8 w-8 p-0"
                           >
                             <Minus className="w-3 h-3" />
                           </Button>
                           <span className="w-8 text-center">{item.quantity}</span>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => updateQuantity(item.id, 1)}
+                            onClick={() => updateQuantity(item.productId, 1)}
                             className="h-8 w-8 p-0"
                           >
                             <Plus className="w-3 h-3" />
@@ -378,11 +428,11 @@ const SP3NDApp = () => {
                   ))}
 
                   <Separator />
-                  
+
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span>${calculateSubtotal().toFixed(2)}</span>
+                      <span>${ rawCart?.totalPriceUSD}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shipping</span>
@@ -395,11 +445,11 @@ const SP3NDApp = () => {
                     <Separator />
                     <div className="flex justify-between font-semibold text-base">
                       <span>Estimated Total</span>
-                      <span>${calculateSubtotal().toFixed(2)}+</span>
+                      <span>${rawCart?.totalPriceUSD}+</span>
                     </div>
                   </div>
 
-                  <Button 
+                  <Button
                     className="w-full"
                     onClick={() => redirect('/checkout')}
                   >
@@ -415,14 +465,43 @@ const SP3NDApp = () => {
     </div>
   );
 
- 
+  const fetchCart = async () => {
+    setIsLoadingCart(true); // Start loading
+
+    try {
+      // Await the helper function
+      const fetchedCart = await getCartByWallet('0x25BBe47DfDA88AA7BF153110736633d0c344B3e2');
+      console.log('Fetched under data:', fetchedCart);
+
+      // Update state with the fetched data
+      setCart(fetchedCart?.items);
+      setRawCart(fetchedCart);
+      console.log('Fetched cart:', fetchedCart);
+      if (fetchedCart) {
+        toast.success(`Cart loaded successfully with ${fetchedCart.items.length} items!`);
+      } else {
+        toast.info("No active cart found. A new one will be created when you add an item.");
+      }
+
+    } catch (error) {
+      console.error("Error fetching cart on page load:", error);
+      toast.error("Failed to load your cart. Please refresh the page.");
+    } finally {
+      setIsLoadingCart(false); // Stop loading
+    }
+  };
+  useEffect(() => {
+
+    fetchCart();
+  }, []); // Empty dependency array means it runs once on mount
 
   return (
-      <CartPage /> 
+    <CartPage />
   );
 };
 
 export default SP3NDApp;
+
 
 
 
