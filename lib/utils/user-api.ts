@@ -15,16 +15,17 @@ export async function saveUserProfile(data: {
   };
 },) {
   try {
+    console.log('Saving user profile with data:', data);
 
     const res = (await axios.post('/api/users',data)).data;
 
-
-    if (!res.ok) {
+console.log("res: ",res.user);
+    if (!res) {
 
       throw new Error('Failed to save user');
     }
 
-    return res.data;
+    return res.user;
   } catch (error) {
     console.error('❌ Error saving user profile:', error);
     throw error;

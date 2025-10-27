@@ -242,11 +242,11 @@ const OrderConfirmedPage = () => {
 
         {/* Action Buttons */}
         <div className={`flex flex-col sm:flex-row gap-4 mt-8 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <Button className="flex-1" onClick={() => window.location.href = '/cart'}>
+          <Button className="flex-1" onClick={() => window.location.href = '/under-development'}>
             Continue Shopping
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-          <Button variant="outline" className="flex-1">
+          <Button variant="outline" className="flex-1" onClick={() => window.location.href ='/under-development'}>
             View All Orders
           </Button>
         </div>

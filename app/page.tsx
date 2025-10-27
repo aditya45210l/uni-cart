@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { redirect } from 'next/navigation';
 import { PushUniversalAccountButton } from '@pushchain/ui-kit';
+import Link from 'next/link';
 
 const CryptoCartLanding = () => {
   const [activeTab, setActiveTab] = useState('features');
@@ -23,14 +24,14 @@ const CryptoCartLanding = () => {
             <div className="w-10 h-10 bg-primary flex items-center justify-center">
               <ShoppingCart className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold">CryptoCart</span>
+            <span className="text-2xl font-bold">UniversalCart</span>
           </div>
           
           <div className="hidden md:flex items-center gap-6">
-            <Button variant="ghost">Features</Button>
-            <Button variant="ghost">How It Works</Button>
-            <Button variant="ghost">Pricing</Button>
-            <Button variant="ghost">About</Button>
+            <Link href={'/under-development'}><Button variant="ghost" >Features</Button></Link>
+            <Link href={'/under-development'}><Button variant="ghost" >How It Works</Button></Link>
+            <Link href={'/under-development'}><Button variant="ghost" >Pricing</Button></Link>
+            <Link href={'/under-development'}><Button variant="ghost" >About</Button></Link>
           </div>
 
           <div className="flex items-center gap-4">
@@ -68,9 +69,9 @@ const CryptoCartLanding = () => {
             Start Shopping
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
-          <Button size="lg" variant="outline" className="text-lg px-8 py-6">
+          <Link  href={'https://www.youtube.com/watch?v=BYIVA8lCcJc'}><Button size="lg" variant="outline" className="text-lg px-8 py-6">
             Watch Demo
-          </Button>
+          </Button></Link>
         </div>
 
         <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
@@ -121,7 +122,7 @@ const CryptoCartLanding = () => {
       <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
           <Badge className="mb-4">Features</Badge>
-          <h2 className="text-4xl font-bold mb-4">Why Choose CryptoCart?</h2>
+          <h2 className="text-4xl font-bold mb-4">Why Choose UniversalCart?</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Shop smarter with crypto. Experience the future of e-commerce today.
           </p>
@@ -242,7 +243,7 @@ const CryptoCartLanding = () => {
               </div>
               <h3 className="text-xl font-semibold mb-3">Paste Product Link</h3>
               <p className="text-muted-foreground">
-                Copy any Amazon product URL and paste it into CryptoCart. We'll fetch all the details.
+                Copy any Amazon product URL and paste it into UniversalCart. We'll fetch all the details.
               </p>
             </div>
 
@@ -311,7 +312,7 @@ const CryptoCartLanding = () => {
           <Badge className="mb-4">FAQ</Badge>
           <h2 className="text-4xl font-bold mb-4">Frequently Asked Questions</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to know about CryptoCart
+            Everything you need to know about UniversalCart
           </p>
         </div>
 
@@ -319,13 +320,13 @@ const CryptoCartLanding = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
-                <span>Is CryptoCart safe to use?</span>
+                <span>Is UniversalCart safe to use?</span>
                 <ChevronDown className="w-5 h-5" />
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Yes! CryptoCart uses industry-standard security practices. Your crypto payments are processed on-chain, 
+                Yes! UniversalCart uses industry-standard security practices. Your crypto payments are processed on-chain, 
                 and we never store your private keys or sensitive payment information.
               </p>
             </CardContent>
@@ -341,7 +342,7 @@ const CryptoCartLanding = () => {
             <CardContent>
               <p className="text-muted-foreground">
                 No account needed! Simply connect your crypto wallet and start shopping immediately. 
-                Your wallet address is your identity on CryptoCart.
+                Your wallet address is your identity on UniversalCart.
               </p>
             </CardContent>
           </Card>
@@ -428,11 +429,11 @@ const CryptoCartLanding = () => {
               <div className="w-8 h-8 bg-primary flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">CryptoCart</span>
+              <span className="text-xl font-bold">UniversalCart</span>
             </div>
             
             <p className="text-sm text-muted-foreground">
-              © 2025 CryptoCart. All rights reserved. Built with ❤️ for the crypto community.
+              © 2025 UniversalCart. All rights reserved. Built with ❤️ for the crypto community.
             </p>
           </div>
         </div>

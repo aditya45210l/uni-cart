@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import {PushChain } from '@pushchain/core';
-import { Home, Package } from 'lucide-react';
+import { PushChain } from '@pushchain/core';
+import { Home, Package, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,56 +13,46 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { getCartByWallet } from '@/lib/utils/cart-api';
-import { saveUserProfile } from '@/lib/utils/user-api'; // ⬅️ Import the user helper
+import { saveUserProfile } from '@/lib/utils/user-api';
 import { usePushChainClient } from '@pushchain/ui-kit';
-import abi from '@/lib/utils/abi.json'
 import OrderConfirmedPage from '@/components/layout/orderConformed';
 
-// --- Form Schema Mapping (Based on your random names) ---
+// Form Schema
 const addressFormSchema = z.object({
     fullName: z.string().min(3, "Full name is required"),
-    phone: z.string().min(10, "Phone number is required"), // You may need a more robust phone validation
+    phone: z.string().min(10, "Phone number is required"),
     country: z.string().min(1, "Country is required"),
     address: z.string().min(1, "Address Line 1 is required"),
     addressLine2: z.string().optional(),
     locality: z.string().min(1, "Locality is required"),
     city: z.string().min(1, "City is required"),
-    pinCode: z.coerce.number().min(100000, "PIN code is required").max(999999, "Invalid PIN code"), // Using coerce to handle Input type="number"
+    pinCode: z.string().min(5, "PIN code is required"),
     state: z.string().min(1, "State is required"),
-    email: z.string().email("Invalid email address").optional(), // Assuming you will add email input later
+    email: z.string().email("Invalid email address").optional(),
 });
 
-// Helper function to map your current randomized names to descriptive names
-type FormSchemaKeys = keyof z.infer<typeof addressFormSchema>;
-const fieldMap: Record<string, FormSchemaKeys> = {
-    name_1763352451: 'fullName',
-    name_5207461461: 'phone',
-    name_5964127267: 'country',
-    name_9660107398: 'address',
-    name_4907378387: 'addressLine2',
-    name_5486515113: 'locality',
-    name_6339123986: 'city',
-    name_0662717037: 'pinCode',
-    name_6443906174: 'state',
-    // Assume we'll add email input with name_email for contact
-};
-// --------------------------------------------------------
-
 const CheckoutPage = () => {
+    const router = useRouter();
     const { pushChainClient } = usePushChainClient();
-    const [isLoading, setIsLoading] = useState(false);
-    const [rawCart, setRawCart] = useState<any>(null);
-    const [selectedCurrency, setSelectedCurrency] = useState('usdc'); // ⬅️ Added currency state
-    const [orderConfirmed, setOrderConfirmed] = useState(false);
     
+    // Loading states
+    const [isLoadingCart, setIsLoadingCart] = useState(false);
+    const [isSavingAddress, setIsSavingAddress] = useState(false);
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    
+    // Data states
+    const [rawCart, setRawCart] = useState<any>(null);
+    const [selectedCurrency, setSelectedCurrency] = useState('usdc');
+    const [orderConfirmed, setOrderConfirmed] = useState(false);
+    const [addressSaved, setAddressSaved] = useState(false);
 
-    // Define fixed fees and rates
+    // Fixed fees and rates
     const PLATFORM_FEE_USD = 2.00;
     const FX_CONVERSION_RATE = 0.01; // 1%
 
-    // --- Order Summary Calculation ---
+    // Calculate Order Summary
     const calculateOrderSummary = (cartTotal: number) => {
         const subtotal = cartTotal;
         const fxFee = subtotal * FX_CONVERSION_RATE;
@@ -73,57 +63,83 @@ const CheckoutPage = () => {
         return { subtotal, fxFee, platformFee, shipping, total };
     };
 
-const handleCheckout = async (amount: string) => {
-  try {
-    if (!pushChainClient) return;
-
-    const usdt = pushChainClient.moveable.token.USDT;
-    const oneCents = PushChain.utils.helpers.parseUnits(amount, { decimals: usdt.decimals });
-// Send 1 USDT to the recipient address
-    const res = await pushChainClient.universal.sendTransaction({
-      to: pushChainClient.universal.account,
-      funds: { amount: oneCents, token: usdt },
-    });
-
-    console.log('Transaction sent. Waiting for confirmation...', res);
-    setOrderConfirmed(true);
-    const receipt = await res.wait();
-    
-    console.log('✅ Sent. Tx:', receipt);
-  } catch (err) {
-    console.error('Checkout error:', err);
-  }
-};
-
-    
-    // Get summary based on fetched cart total
     const cartTotalFromDB = rawCart?.totalPriceUSD || 0;
     const summary = calculateOrderSummary(cartTotalFromDB);
     const displayTotal = summary.total.toFixed(2);
     const displayCurrency = selectedCurrency.toUpperCase();
-    // ---------------------------------
 
-    // --- Cart Fetching Logic ---
+    // Checkout Handler with Loading State
+    const handleCheckout = async (amount: string) => {
+        // Check if address is saved first
+        if (!addressSaved) {
+            toast.error("Please save your shipping address before checkout");
+            return;
+        }
+
+        if (!pushChainClient) {
+            toast.error("Wallet not connected");
+            return;
+        }
+
+        setIsProcessingPayment(true);
+        
+        try {
+            const usdt = pushChainClient.moveable.token.USDT;
+            const oneCents = PushChain.utils.helpers.parseUnits(amount, { decimals: usdt.decimals });
+
+            toast.loading("Sending transaction...", { id: "checkout-tx" });
+
+            const res = await pushChainClient.universal.sendTransaction({
+                to: pushChainClient.universal.account,
+                funds: { amount: oneCents, token: usdt },
+            });
+
+            console.log('Transaction sent. Waiting for confirmation...', res);
+            
+            toast.loading("Confirming transaction...", { id: "checkout-tx" });
+            
+            const receipt = await res.wait();
+            
+            console.log('✅ Sent. Tx:', receipt);
+            
+            toast.success("Payment successful!", { id: "checkout-tx" });
+            
+            setOrderConfirmed(true);
+        } catch (err) {
+            console.error('Checkout error:', err);
+            toast.error("Payment failed. Please try again.", { id: "checkout-tx" });
+        } finally {
+            setIsProcessingPayment(false);
+        }
+    };
+
+    // Fetch Cart on Load
     const fetchCart = async () => {
-        setIsLoading(true);
+        setIsLoadingCart(true);
         try {
             if (!pushChainClient?.universal?.origin?.address) {
                 toast.warning("Please connect your wallet to view checkout.");
+                router.push('/cart');
                 return;
             }
+            
             const walletAddress = pushChainClient.universal.origin.address as string;
             const fetchedCart = await getCartByWallet(walletAddress);
-            setRawCart(fetchedCart);
-            if (fetchedCart) {
-                toast.success(`Cart loaded successfully with ${fetchedCart.items.length} items!`);
-            } else {
-                toast.info("No active cart found.");
+            
+            if (!fetchedCart || fetchedCart.items.length === 0) {
+                toast.info("Your cart is empty. Redirecting...");
+                router.push('/cart');
+                return;
             }
+            
+            setRawCart(fetchedCart);
+            toast.success(`Cart loaded with ${fetchedCart.items.length} items!`);
         } catch (error) {
-            console.error("Error fetching cart on page load:", error);
-            toast.error("Failed to load your cart. Please refresh the page.");
+            console.error("Error fetching cart:", error);
+            toast.error("Failed to load your cart.");
+            router.push('/cart');
         } finally {
-            setIsLoading(false);
+            setIsLoadingCart(false);
         }
     };
 
@@ -132,250 +148,98 @@ const handleCheckout = async (amount: string) => {
             fetchCart();
         }
     }, [pushChainClient]);
-    // ----------------------------
 
-
-    // --- Shipping Address Form Logic ---
+    // Shipping Address Form
     const form = useForm<z.infer<typeof addressFormSchema>>({
         resolver: zodResolver(addressFormSchema),
         defaultValues: {
             fullName: "",
             phone: "",
-            country: "India", // Set default to match Select
+            country: "India",
             address: "",
             addressLine2: "",
             locality: "",
             city: "",
-            pinCode: 0, // Default to 0, Zod will handle min/max
+            pinCode: "",
             state: "",
             email: ""
         }
     });
 
-    async function onSubmit(values: z.infer<typeof addressFormSchema>) {
+    // Form Submit Handler with Loading State
+    const onSubmit = async (values: z.infer<typeof addressFormSchema>) => {
         console.log("Form Values on Submit:", values);
+        
         if (!pushChainClient?.universal?.origin?.address) {
             toast.error("Wallet not connected. Cannot save address.");
             return;
         }
 
+        setIsSavingAddress(true);
+
         const walletAddress = pushChainClient.universal.origin.address as string;
         
-        // 1. Prepare Shipping Address object for API
         const shippingAddress = {
             fullName: values.fullName,
             phone: values.phone,
             country: values.country,
             address: values.address,
-            addressLine2: values.addressLine2,
+            addressLine2: values.addressLine2 || "",
             locality: values.locality,
             city: values.city,
-            pinCode: String(values.pinCode), // Convert number back to string for backend consistency if needed
+            pinCode: values.pinCode,
             state: values.state,
-            // Note: Email is handled separately if needed for contact
         };
 
         const payload = {
             walletAddress: walletAddress,
-            email: values.email, // Or pull from a separate email field if you add one
+            email: values.email || "",
             name: values.fullName,
             shippingAddress: shippingAddress,
         };
 
         try {
-            // 2. Call the upsertUser helper function
-            const updatedUser = await upsertUser(payload);
+            toast.loading("Saving address...", { id: "save-address" });
+            
+            const updatedUser = await saveUserProfile(payload);
 
             if (updatedUser) {
-                toast.success("Shipping address saved successfully!");
+                toast.success("Shipping address saved successfully!", { id: "save-address" });
+                setAddressSaved(true);
                 console.log("Updated User:", updatedUser);
             } else {
-                toast.error("Failed to save address. Please check your inputs.");
+                toast.error("Failed to save address. Please try again.", { id: "save-address" });
             }
         } catch (error) {
             console.error("Address submission error:", error);
-            toast.error("An unexpected error occurred while saving the address.");
+            toast.error("An error occurred while saving the address.", { id: "save-address" });
+        } finally {
+            setIsSavingAddress(false);
         }
+    };
+
+    // Loading State
+    if (isLoadingCart) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+                    <p className="text-lg font-medium">Loading checkout details...</p>
+                </div>
+            </div>
+        );
     }
-    // -----------------------------------
 
-    // --- MyForm Component (Inline or as a nested component for clean structure) ---
-    // Note: I'm defining MyForm inside CheckoutPage to easily access 'form' and 'onSubmit'
-    const MyForm = () => (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-4">
-                <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Enter your Full Name" type="text" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col items-start">
-                                <FormLabel>Phone number</FormLabel>
-                                <FormControl className="w-full">
-                                    <PhoneInput placeholder="Enter phone number" {...field} defaultCountry="US" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="country"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Country</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Country" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="India">India</SelectItem>
-                                        <SelectItem value="USA">USA</SelectItem>
-                                        <SelectItem value="UK">UK</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Address Line 1</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Street address, P.O. Box, company name, c/o" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="addressLine2"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Address Line 2 (Optional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Apartment, suite, unit, building, floor, etc." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="locality"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Locality [Area/Society/Colony/Sector]</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Area/Society/Colony/Sector" {...field} />
-                            </FormControl>
-                            <FormDescription>Required for India addresses</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>City</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="City" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="pinCode"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>PIN Code</FormLabel>
-                                <FormControl>
-                                    {/* Use onChange to ensure value is treated as number before Zod coerce */}
-                                    <Input 
-                                        placeholder="PIN Code" 
-                                        type="number" 
-                                        {...field} 
-                                        onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>State</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select State" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="MH">Maharashtra</SelectItem>
-                                        <SelectItem value="DL">Delhi</SelectItem>
-                                        <SelectItem value="KA">Karnataka</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                
-                <Button type="submit" className="w-full mt-6">Save Address</Button>
-            </form>
-        </Form>
-    );
-    // ------------------------------------------------------------------------
-
-    if (isLoading && !rawCart) {
-        return <div className="p-8 text-center">Loading checkout details...</div>;
+    // Order Confirmed State
+    if (orderConfirmed) {
+        return <OrderConfirmedPage />;
     }
 
     return (
-        <>
-        {
-            orderConfirmed ? (<OrderConfirmedPage/>):(<div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8">
             <Button
                 variant="ghost"
-                onClick={() => redirect('/cart')}
+                onClick={() => router.push('/cart')}
                 className="mb-6"
             >
                 ← Back to Cart
@@ -385,7 +249,6 @@ const handleCheckout = async (amount: string) => {
                 <div className="lg:col-span-2">
                     {/* Delivery Options Card */}
                     <Card className="mb-6">
-                        {/* ... (Delivery Card content) ... */}
                         <CardHeader>
                             <CardTitle>Delivery Options</CardTitle>
                             <CardDescription>Choose delivery method</CardDescription>
@@ -404,14 +267,202 @@ const handleCheckout = async (amount: string) => {
                     {/* Address Form Card */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Add new address</CardTitle>
+                            <CardTitle>Shipping Address</CardTitle>
+                            <CardDescription>
+                                {addressSaved ? "✅ Address saved successfully" : "Please fill in your shipping details"}
+                            </CardDescription>
                         </CardHeader>
-                        <MyForm /> 
+                        <CardContent>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="fullName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Full Name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter your Full Name" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="phone"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-col items-start">
+                                                    <FormLabel>Phone number</FormLabel>
+                                                    <FormControl className="w-full">
+                                                        <PhoneInput placeholder="Enter phone number" {...field} defaultCountry="IN" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="country"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Country</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select Country" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="India">India</SelectItem>
+                                                            <SelectItem value="USA">USA</SelectItem>
+                                                            <SelectItem value="UK">UK</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="address"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Address Line 1</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Street address, P.O. Box, company name, c/o" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="addressLine2"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Address Line 2 (Optional)</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Apartment, suite, unit, building, floor, etc." {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="locality"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Locality [Area/Society/Colony/Sector]</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Area/Society/Colony/Sector" {...field} />
+                                                </FormControl>
+                                                <FormDescription>Required for India addresses</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="city"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>City</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="City" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="pinCode"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>PIN Code</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="PIN Code" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="state"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>State</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select State" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="MH">Maharashtra</SelectItem>
+                                                            <SelectItem value="DL">Delhi</SelectItem>
+                                                            <SelectItem value="KA">Karnataka</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Email (Optional)</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="your.email@example.com" type="email" {...field} />
+                                                </FormControl>
+                                                <FormDescription>For order confirmations</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <Button 
+                                        type="submit" 
+                                        className="w-full mt-6" 
+                                        disabled={isSavingAddress || addressSaved}
+                                    >
+                                        {isSavingAddress ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Saving Address...
+                                            </>
+                                        ) : addressSaved ? (
+                                            "✅ Address Saved"
+                                        ) : (
+                                            "Save Address"
+                                        )}
+                                    </Button>
+                                </form>
+                            </Form>
+                        </CardContent>
                     </Card>
                 </div>
 
                 <div>
-                    {/* Order Summary Card (using dynamic summary) */}
+                    {/* Order Summary Card */}
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle>Order Summary</CardTitle>
@@ -443,21 +494,7 @@ const handleCheckout = async (amount: string) => {
                         </CardContent>
                     </Card>
 
-                    {/* Contact Email Card (You'll need to integrate email submission here) */}
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle>Contact Email</CardTitle>
-                            <CardDescription>Used for order confirmations and delivery updates</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                <div className="text-sm text-muted-foreground">Not provided</div>
-                                <Button variant="outline" className="w-full">Add</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Payment Method Card (using dynamic total and currency) */}
+                    {/* Payment Method Card */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Payment Method</CardTitle>
@@ -466,6 +503,7 @@ const handleCheckout = async (amount: string) => {
                             <Select
                                 defaultValue={selectedCurrency}
                                 onValueChange={(value) => setSelectedCurrency(value)}
+                                disabled={isProcessingPayment}
                             >
                                 <SelectTrigger className="mb-4">
                                     <SelectValue placeholder="Select a currency" />
@@ -477,16 +515,33 @@ const handleCheckout = async (amount: string) => {
                                 </SelectContent>
                             </Select>
 
-                            <Button className="w-full py-6" onClick={() => handleCheckout(displayTotal)}>
-                                {`Pay $${displayTotal} ${displayCurrency}`}
+                            <Button 
+                                className="w-full py-6" 
+                                onClick={() => handleCheckout(displayTotal)}
+                                disabled={!addressSaved || isProcessingPayment}
+                            >
+                                {isProcessingPayment ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                        Processing Payment...
+                                    </>
+                                ) : !addressSaved ? (
+                                    "Please Save Address First"
+                                ) : (
+                                    `Pay $${displayTotal} ${displayCurrency}`
+                                )}
                             </Button>
+                            
+                            {!addressSaved && (
+                                <p className="text-xs text-muted-foreground text-center mt-2">
+                                    ⚠️ You must save your shipping address before checkout
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
             </div>
-        </div>)
-        }
-        </>
+        </div>
     );
 };
 
