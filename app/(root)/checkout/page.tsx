@@ -84,9 +84,9 @@ const handleCheckout = async (amount: string) => {
       to: pushChainClient.universal.account,
       funds: { amount: oneCents, token: usdt },
     });
+    setOrderConfirmed(true);
 
     console.log('Transaction sent. Waiting for confirmation...', res);
-    setOrderConfirmed(true);
     const receipt = await res.wait();
     
     console.log('✅ Sent. Tx:', receipt);

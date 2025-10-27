@@ -15,6 +15,7 @@ export async function saveUserProfile(data: {
   };
 },) {
   try {
+    console.log('Saving user profile with data:', data);
 
     const res = (await axios.post('/api/users',data)).data;
 
